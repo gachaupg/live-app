@@ -3,7 +3,7 @@ const main__chat__window = document.getElementById("main__chat_window");
 const videoGrids = document.getElementById("video-grids");
 const myVideo = document.createElement("video");
 const chat = document.getElementById("chat");
-OtherUsername = "";
+let OtherUsername = "";
 chat.hidden = true;
 myVideo.muted = true;
 
@@ -26,6 +26,8 @@ var getUserMedia =
     navigator.webkitGetUserMedia ||
     navigator.mozGetUserMedia;
 
+let isRoomCreator = false; // Track if the user is the room creator
+
 sendmessage = (text) => {
     if (event.key === "Enter" && text.value != "") {
         socket.emit("messagesend", myname + ' : ' + text.value);
@@ -42,7 +44,8 @@ navigator.mediaDevices
     .then((stream) => {
         myVideoStream = stream;
         addVideoStream(myVideo, stream, myname);
-
+        isRoomCreator = true; // This user is the room creator
+console.log();
         socket.on("user-connected", (id, username) => {
             console.log("userid:" + id);
             connectToNewUser(id, stream, username);
@@ -54,12 +57,20 @@ navigator.mediaDevices
             if (peers[id]) peers[id].close();
         });
     });
+
 peer.on("call", (call) => {
     getUserMedia({ video: true, audio: true },
         function(stream) {
             call.answer(stream); // Answer the call with an A/V stream.
             const video = document.createElement("video");
             call.on("stream", function(remoteStream) {
+                if (isRoomCreator) {
+                    remoteStream.getVideoTracks()[0].enabled = false; // Mute remote video for non-creators
+                }else{
+                    video:false
+                    audio:false
+                
+                }
                 addVideoStream(video, remoteStream, OtherUsername);
             });
         },
@@ -87,7 +98,6 @@ socket.on("AddName", (username) => {
 });
 
 const RemoveUnusedDivs = () => {
-    //
     alldivs = videoGrids.getElementsByTagName("div");
     for (var i = 0; i < alldivs.length; i++) {
         e = alldivs[i].getElementsByTagName("video").length;
@@ -101,7 +111,9 @@ const connectToNewUser = (userId, streams, myname) => {
     const call = peer.call(userId, streams);
     const video = document.createElement("video");
     call.on("stream", (userVideoStream) => {
-        //       console.log(userVideoStream);
+        if (!isRoomCreator) {
+            userVideoStream.getVideoTracks()[0].enabled = false; // Mute remote video for non-creators
+        }
         addVideoStream(video, userVideoStream, myname);
     });
     call.on("close", () => {
@@ -159,20 +171,29 @@ const addVideoStream = (videoEl, stream, name) => {
     videoEl.addEventListener("loadedmetadata", () => {
         videoEl.play();
     });
-    const h1 = document.createElement("h1");
-    const h1name = document.createTextNode(name);
-    h1.appendChild(h1name);
+    
     const videoGrid = document.createElement("div");
     videoGrid.classList.add("video-grid");
-    videoGrid.appendChild(h1);
+    
+    const username = document.createElement("div");
+    username.classList.add("username");
+    username.innerText = name;
+    
+    videoGrid.appendChild(username);
+    videoGrid.appendChild(videoEl);
+    
     videoGrids.appendChild(videoGrid);
-    videoGrid.append(videoEl);
     RemoveUnusedDivs();
+    
+    if (isRoomCreator) {
+        videoGrid.classList.add("video-creator");
+    } else {
+        videoGrid.classList.add("video-participant");
+    }
     let totalUsers = document.getElementsByTagName("video").length;
     if (totalUsers > 1) {
         for (let index = 0; index < totalUsers; index++) {
-            document.getElementsByTagName("video")[index].style.width =
-                100 / totalUsers + "%";
+            document.getElementsByTagName("video")[index].style.width = "100%";
         }
     }
 };

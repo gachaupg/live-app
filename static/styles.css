@@ -31,8 +31,15 @@ a:active {
     flex-wrap: wrap;
     overflow-y: auto;
     background-color: yellow;
+    
+}
+.video-creator {
+    width: 10%; /* Width for the creator's video */
 }
 
+.video-participant {
+    width: 70%; /* Width for non-creators' videos */
+}
 h1 {
     position: absolute;
     bottom: 0;
@@ -44,7 +51,7 @@ video {
     flex: 1;
     object-fit: cover;
     border: 5px solid #000;
-    max-width: 600px;
+    /* width: 50rem; */
     border-radius: 25px;
 }
 
